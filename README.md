@@ -1,4 +1,9 @@
 # StableFlow: Stablecoin Treasury Dashboard for SMEs
+## Live Demo
+
+You can view the deployed app here:
+
+[Open StableFlow Dashboard](https://stablecoin-treasury-dashboard-for-smes-t8b9zx63acshvv7cldf2c5.streamlit.app/)
 
 StableFlow is a simple treasury dashboard built with Streamlit for small and medium-sized businesses that hold stablecoins such as USDC and USDT.
 
