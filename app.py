@@ -1,38 +1,90 @@
 import streamlit as st
 import pandas as pd
 
-# Page settings
 st.set_page_config(
-    page_title="Stablecoin Treasury Dashboard for SMEs",
+    page_title="StableFlow | Stablecoin Treasury OS",
     page_icon="💵",
     layout="wide"
 )
 
-# Title
-st.title("💵 Stablecoin Treasury Dashboard for SMEs")
-st.write(
-    "A simple treasury dashboard for small businesses holding USDC/USDT "
-    "to manage liquidity, upcoming payments, yield opportunities, and FX exposure."
+# -----------------------------
+# Styling
+# -----------------------------
+st.markdown(
+    """
+    <style>
+    .big-title {
+        font-size: 48px;
+        font-weight: 800;
+        line-height: 1.1;
+    }
+    .subtitle {
+        font-size: 20px;
+        color: #555;
+        margin-bottom: 20px;
+    }
+    .pitch-card {
+        padding: 22px;
+        border-radius: 16px;
+        border: 1px solid #e6e6e6;
+        background-color: #fafafa;
+        height: 100%;
+    }
+    .highlight-card {
+        padding: 22px;
+        border-radius: 16px;
+        background-color: #ecfdf3;
+        border: 1px solid #abefc6;
+        height: 100%;
+    }
+    .risk-card {
+        padding: 22px;
+        border-radius: 16px;
+        background-color: #fff4e5;
+        border: 1px solid #ffd59e;
+        height: 100%;
+    }
+    .danger-card {
+        padding: 22px;
+        border-radius: 16px;
+        background-color: #fff1f3;
+        border: 1px solid #fecdd3;
+        height: 100%;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
 )
 
-st.divider()
+# -----------------------------
+# Sidebar: Business scenario
+# -----------------------------
+st.sidebar.title("Scenario Builder")
 
-# Sidebar inputs
-st.sidebar.header("Treasury Inputs")
+company_name = st.sidebar.text_input("Business Name", "NorthBridge Imports")
+business_type = st.sidebar.selectbox(
+    "Business Type",
+    ["Importer", "Exporter", "Logistics Company", "Digital Agency", "Marketplace", "Freelance Team"]
+)
 
-usdc_balance = st.sidebar.number_input(
-    "USDC Balance",
+main_region = st.sidebar.selectbox(
+    "Primary Market",
+    ["Canada", "UAE", "United States", "United Kingdom", "Pakistan", "Singapore"]
+)
+
+monthly_revenue = st.sidebar.number_input(
+    "Monthly Revenue",
     min_value=0,
-    value=30000,
-    step=1000
+    value=85000,
+    step=5000
 )
 
-usdt_balance = st.sidebar.number_input(
-    "USDT Balance",
-    min_value=0,
-    value=15000,
-    step=1000
-)
+st.sidebar.divider()
+
+st.sidebar.subheader("Stablecoin Treasury")
+
+usdc_balance = st.sidebar.number_input("USDC Balance", min_value=0, value=30000, step=1000)
+usdt_balance = st.sidebar.number_input("USDT Balance", min_value=0, value=15000, step=1000)
 
 usdc_in_yield = st.sidebar.number_input(
     "USDC in Yield",
@@ -50,25 +102,50 @@ usdt_in_yield = st.sidebar.number_input(
     step=1000
 )
 
-st.sidebar.header("FX Rates")
-
-cad_rate = st.sidebar.number_input(
-    "1 USD to CAD",
+target_yield_apy = st.sidebar.slider(
+    "Target Yield APY",
     min_value=0.0,
-    value=1.37,
-    step=0.01
+    max_value=15.0,
+    value=5.2,
+    step=0.1
 )
 
-aed_rate = st.sidebar.number_input(
-    "1 USD to AED",
+st.sidebar.divider()
+
+st.sidebar.subheader("FX Rates")
+
+cad_rate = st.sidebar.number_input("1 USD to CAD", min_value=0.01, value=1.37, step=0.01)
+aed_rate = st.sidebar.number_input("1 USD to AED", min_value=0.01, value=3.67, step=0.01)
+eur_rate = st.sidebar.number_input("1 USD to EUR", min_value=0.01, value=0.92, step=0.01)
+
+st.sidebar.divider()
+
+st.sidebar.subheader("Business Assumptions")
+
+bank_fee_pct = st.sidebar.slider(
+    "Current Bank / Transfer Fee %",
     min_value=0.0,
-    value=3.67,
-    step=0.01
+    max_value=5.0,
+    value=1.2,
+    step=0.1
 )
 
-# Calculations
+payment_delay_days = st.sidebar.slider(
+    "Current Payment Delay in Days",
+    min_value=0,
+    max_value=10,
+    value=3
+)
+
+# -----------------------------
+# Data
+# -----------------------------
 usdc_available = usdc_balance - usdc_in_yield
 usdt_available = usdt_balance - usdt_in_yield
+
+total_balance = usdc_balance + usdt_balance
+funds_in_yield = usdc_in_yield + usdt_in_yield
+available_liquidity = usdc_available + usdt_available
 
 wallets = pd.DataFrame({
     "Stablecoin": ["USDC", "USDT"],
@@ -77,158 +154,467 @@ wallets = pd.DataFrame({
     "In Yield": [usdc_in_yield, usdt_in_yield]
 })
 
-# Editable payables data
 default_payables = pd.DataFrame({
     "Vendor": ["Supplier A", "Logistics Partner", "Freelancer B", "Packaging Vendor"],
+    "Category": ["Inventory", "Shipping", "Services", "Operations"],
     "Amount": [8000, 3000, 1200, 2500],
     "Currency": ["USD", "CAD", "USD", "AED"],
-    "Due Date": ["2026-06-10", "2026-06-12", "2026-06-08", "2026-06-15"],
+    "Due in Days": [5, 9, 2, 14],
     "Status": ["Pending", "Pending", "Urgent", "Pending"]
 })
 
-# Yield options
 yield_options = pd.DataFrame({
-    "Yield Option": ["Conservative USDC Pool", "Flexible USDT Pool", "Growth USDC Pool"],
+    "Yield Product": ["Flexible USDC Vault", "Short-Term USDT Pool", "Growth USDC Strategy"],
     "Stablecoin": ["USDC", "USDT", "USDC"],
     "Estimated APY": ["4.2%", "5.1%", "7.5%"],
     "Risk Level": ["Low", "Medium", "Medium"],
-    "Lock Period": ["Flexible", "7 Days", "30 Days"]
+    "Lock Period": ["Flexible", "7 Days", "30 Days"],
+    "Best For": ["Emergency liquidity", "Short cash parking", "Idle long-term funds"]
 })
 
-# FX exposure
-fx_exposure = pd.DataFrame({
-    "Currency Needed": ["USD", "CAD", "AED"],
-    "Example Amount Due": [9200, 3000, 2500],
-    "Current Treasury Asset": ["USDC/USDT", "USDC", "USDC"],
-    "FX Rate Used": ["1.00", cad_rate, aed_rate],
-    "FX Risk Level": ["Low", "Medium", "Medium"]
+pricing = pd.DataFrame({
+    "Plan": ["Starter", "Growth", "Treasury Pro"],
+    "Target Customer": ["Small SME", "Growing importer/exporter", "Multi-currency business"],
+    "Monthly Price": ["$49", "$149", "$399"],
+    "Key Feature": ["Basic dashboard", "FX + yield insights", "Advanced treasury automation"]
 })
 
-# Main dashboard calculations
-total_balance = wallets["Total Balance"].sum()
-available_liquidity = wallets["Available Liquidity"].sum()
-funds_in_yield = wallets["In Yield"].sum()
+# -----------------------------
+# Header / Hero
+# -----------------------------
+st.markdown('<div class="big-title">StableFlow: Stablecoin Treasury OS for SMEs</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="subtitle">Helping small businesses manage stablecoin liquidity, supplier payables, FX exposure, and yield opportunities from one CFO-friendly dashboard.</div>',
+    unsafe_allow_html=True
+)
 
-# Metrics
-col1, col2, col3, col4 = st.columns(4)
+col_a, col_b, col_c = st.columns([1.1, 1, 1])
 
-col1.metric("Total Treasury", f"${total_balance:,.0f}")
-col2.metric("Available Liquidity", f"${available_liquidity:,.0f}")
-col3.metric("Funds in Yield", f"${funds_in_yield:,.0f}")
-col4.metric("Stablecoins Used", "USDC / USDT")
+with col_a:
+    st.markdown(
+        """
+        <div class="highlight-card">
+        <h3>Business Pitch</h3>
+        <p><b>StableFlow</b> is a treasury management platform for SMEs that hold USDC/USDT and need better control over payments, idle cash, currency risk, and yield.</p>
+        <p>Think: <b>Brex-style treasury dashboard + stablecoin finance layer</b>.</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with col_b:
+    st.markdown(
+        """
+        <div class="pitch-card">
+        <h3>Target Customer</h3>
+        <p>Non-crypto-native CFOs, finance managers, importers, exporters, agencies, and small businesses using stablecoins for global payments.</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with col_c:
+    st.markdown(
+        """
+        <div class="risk-card">
+        <h3>Core Pain</h3>
+        <p>SMEs may hold stablecoins, but they lack one simple tool to manage liquidity, yield, FX exposure, and upcoming payables together.</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 st.divider()
 
+# -----------------------------
+# Editable Payables
+# -----------------------------
+st.subheader("Interactive Payables Planner")
+
+st.write(
+    "Edit the supplier payments below. The dashboard will update the liquidity score, risk level, and business case automatically."
+)
+
+edited_payables = st.data_editor(
+    default_payables,
+    use_container_width=True,
+    num_rows="dynamic",
+    hide_index=True,
+    column_config={
+        "Currency": st.column_config.SelectboxColumn(
+            "Currency",
+            options=["USD", "CAD", "AED", "EUR"]
+        ),
+        "Status": st.column_config.SelectboxColumn(
+            "Status",
+            options=["Pending", "Urgent", "Paid"]
+        ),
+        "Amount": st.column_config.NumberColumn(
+            "Amount",
+            min_value=0,
+            step=100
+        ),
+        "Due in Days": st.column_config.NumberColumn(
+            "Due in Days",
+            min_value=0,
+            step=1
+        )
+    }
+)
+
+edited_payables["Amount"] = pd.to_numeric(edited_payables["Amount"], errors="coerce").fillna(0)
+edited_payables["Due in Days"] = pd.to_numeric(edited_payables["Due in Days"], errors="coerce").fillna(0)
+edited_payables["Currency"] = edited_payables["Currency"].fillna("USD")
+edited_payables["Status"] = edited_payables["Status"].fillna("Pending")
+
+fx_rates = {
+    "USD": 1.00,
+    "CAD": cad_rate,
+    "AED": aed_rate,
+    "EUR": eur_rate
+}
+
+def convert_to_usd(row):
+    currency = row["Currency"]
+    amount = row["Amount"]
+    rate = fx_rates.get(currency, 1.00)
+    return amount / rate
+
+edited_payables["USD Equivalent"] = edited_payables.apply(convert_to_usd, axis=1)
+
+total_payables_usd = edited_payables["USD Equivalent"].sum()
+urgent_payables_usd = edited_payables[
+    (edited_payables["Status"] == "Urgent") | (edited_payables["Due in Days"] <= 3)
+]["USD Equivalent"].sum()
+
+idle_liquidity = available_liquidity - total_payables_usd
+annual_yield_estimate = funds_in_yield * (target_yield_apy / 100)
+monthly_yield_estimate = annual_yield_estimate / 12
+monthly_fee_savings = total_payables_usd * (bank_fee_pct / 100)
+estimated_monthly_value = monthly_yield_estimate + monthly_fee_savings
+
+coverage_ratio = available_liquidity / total_payables_usd if total_payables_usd > 0 else 10
+
+liquidity_score = 50
+
+if coverage_ratio >= 1.5:
+    liquidity_score += 25
+elif coverage_ratio >= 1.0:
+    liquidity_score += 15
+elif coverage_ratio >= 0.75:
+    liquidity_score += 5
+else:
+    liquidity_score -= 20
+
+if idle_liquidity > 0:
+    liquidity_score += 10
+else:
+    liquidity_score -= 15
+
+if total_balance > 0 and funds_in_yield <= total_balance * 0.45:
+    liquidity_score += 10
+else:
+    liquidity_score -= 5
+
+if urgent_payables_usd <= available_liquidity * 0.35:
+    liquidity_score += 5
+else:
+    liquidity_score -= 10
+
+liquidity_score = max(0, min(100, liquidity_score))
+
+if liquidity_score >= 80:
+    risk_label = "Low Risk"
+elif liquidity_score >= 60:
+    risk_label = "Medium Risk"
+else:
+    risk_label = "High Risk"
+
+runway_days = (available_liquidity / total_payables_usd) * 30 if total_payables_usd > 0 else 999
+
+st.divider()
+
+# -----------------------------
+# Executive Metrics
+# -----------------------------
+col1, col2, col3, col4, col5 = st.columns(5)
+
+col1.metric("Total Treasury", f"${total_balance:,.0f}")
+col2.metric("Available Liquidity", f"${available_liquidity:,.0f}")
+col3.metric("Upcoming Payables", f"${total_payables_usd:,.0f}")
+col4.metric("Idle Liquidity", f"${idle_liquidity:,.0f}")
+col5.metric("Risk Level", risk_label)
+
+st.progress(liquidity_score / 100)
+st.caption(f"Liquidity Score: {liquidity_score}/100 | Estimated runway: {runway_days:.0f} days")
+
+# -----------------------------
 # Tabs
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "Overview",
-    "Payables",
-    "Yield Management",
-    "FX Exposure",
-    "AI Insights"
+# -----------------------------
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    "Pitch Overview",
+    "Product Demo",
+    "AI CFO Insights",
+    "FX + Yield Simulator",
+    "Business Model",
+    "Final Project Summary"
 ])
 
+# -----------------------------
+# Tab 1: Pitch Overview
+# -----------------------------
 with tab1:
-    st.subheader("Stablecoin Wallet Overview")
-    st.dataframe(wallets, use_container_width=True)
+    st.header("Pitch Overview")
 
-    st.subheader("Treasury Allocation Chart")
-    chart_data = wallets.set_index("Stablecoin")[["Available Liquidity", "In Yield"]]
-    st.bar_chart(chart_data)
+    c1, c2 = st.columns(2)
 
+    with c1:
+        st.subheader("Problem")
+        st.markdown(
+            """
+            SMEs are starting to use stablecoins for global payments, but their finance teams still manage treasury through spreadsheets, wallets, exchanges, and bank portals.
+
+            This creates four major problems:
+
+            - No clear view of available liquidity
+            - No easy planning for supplier payables
+            - Idle stablecoins are not optimized for yield
+            - FX exposure is hard to understand
+            """
+        )
+
+    with c2:
+        st.subheader("Solution")
+        st.markdown(
+            """
+            StableFlow gives SMEs one dashboard to manage their stablecoin treasury.
+
+            The platform helps CFOs answer:
+
+            - How much stablecoin do we have?
+            - How much is liquid today?
+            - What payments are due soon?
+            - Can we safely allocate idle funds to yield?
+            - Which currency exposures create risk?
+            """
+        )
+
+    st.subheader("Why Now?")
     st.info(
-        "Use the sidebar inputs to change stablecoin balances and see the dashboard update automatically."
+        "Stablecoins are becoming more relevant for global B2B payments, but most SME finance teams are not crypto-native. "
+        "They need simple treasury software, not complex DeFi tools."
     )
 
+    st.subheader("One-Line Value Proposition")
+    st.success(
+        "StableFlow helps SMEs turn stablecoin balances into a controlled treasury system for liquidity, payables, FX, and yield."
+    )
+
+# -----------------------------
+# Tab 2: Product Demo
+# -----------------------------
 with tab2:
-    st.subheader("Upcoming Payables")
+    st.header("Product Demo")
 
-    edited_payables = st.data_editor(
-        default_payables,
-        use_container_width=True,
-        num_rows="dynamic"
-    )
+    st.subheader(f"{company_name} Treasury Snapshot")
 
-    upcoming_payables = edited_payables["Amount"].sum()
+    demo_col1, demo_col2 = st.columns(2)
 
-    st.metric("Total Upcoming Payables", f"${upcoming_payables:,.0f}")
+    with demo_col1:
+        st.write("Stablecoin Wallets")
+        st.dataframe(wallets, use_container_width=True, hide_index=True)
 
-    urgent_payments = edited_payables[edited_payables["Status"] == "Urgent"]
+    with demo_col2:
+        st.write("Treasury Allocation")
+        chart_data = wallets.set_index("Stablecoin")[["Available Liquidity", "In Yield"]]
+        st.bar_chart(chart_data)
 
-    if not urgent_payments.empty:
-        st.warning("You have urgent payments due soon. Keep enough liquidity available.")
+    st.subheader("Upcoming Payables in USD Equivalent")
+    st.dataframe(edited_payables, use_container_width=True, hide_index=True)
+
+    if available_liquidity >= total_payables_usd:
+        st.success("The business has enough available stablecoins to cover upcoming payments.")
     else:
-        st.success("No urgent payments found.")
+        st.error("Liquidity gap detected. Available stablecoins are lower than upcoming payables.")
 
+# -----------------------------
+# Tab 3: AI CFO Insights
+# -----------------------------
 with tab3:
-    st.subheader("Yield Management")
-    st.dataframe(yield_options, use_container_width=True)
+    st.header("AI CFO Insights")
 
-    idle_liquidity = available_liquidity - default_payables["Amount"].sum()
+    st.subheader("Executive Memo")
 
-    st.subheader("Yield Recommendation")
-
-    if idle_liquidity > 0:
+    if risk_label == "Low Risk":
         st.success(
-            f"You may have around ${idle_liquidity:,.0f} in excess liquidity. "
-            "This amount can be reviewed for flexible yield allocation."
+            f"{company_name} has a healthy treasury position. Available liquidity covers upcoming payments, "
+            "and the company may review excess liquidity for flexible yield allocation."
         )
-    else:
+    elif risk_label == "Medium Risk":
         st.warning(
-            "You do not have excess liquidity right now. Avoid locking more funds into yield."
-        )
-
-    st.info(
-        "For SMEs, flexible yield options are safer when supplier payments are coming soon."
-    )
-
-with tab4:
-    st.subheader("FX Exposure")
-    st.dataframe(fx_exposure, use_container_width=True)
-
-    st.write("FX exposure means currency risk when the business holds USD stablecoins but needs to pay in other currencies.")
-
-    cad_example = 3000 / cad_rate
-    aed_example = 2500 / aed_rate
-
-    col_fx1, col_fx2 = st.columns(2)
-
-    col_fx1.metric("CAD 3,000 Payment in USD", f"${cad_example:,.2f}")
-    col_fx2.metric("AED 2,500 Payment in USD", f"${aed_example:,.2f}")
-
-    st.warning(
-        "If exchange rates change, the final payment cost can increase or decrease."
-    )
-
-with tab5:
-    st.subheader("AI Treasury Insights")
-
-    total_payables = default_payables["Amount"].sum()
-
-    if available_liquidity >= total_payables:
-        st.success(
-            "Liquidity looks healthy. You have enough available stablecoins "
-            "to cover upcoming payables."
+            f"{company_name} has manageable liquidity, but treasury decisions should be cautious. "
+            "Avoid locking too much stablecoin into long-term yield until urgent payables are cleared."
         )
     else:
         st.error(
-            "Liquidity risk detected. Upcoming payables are higher than available liquidity."
+            f"{company_name} has elevated treasury risk. Upcoming payables are too close to available liquidity. "
+            "The company should increase liquid stablecoin reserves before allocating more funds to yield."
         )
 
-    idle_amount = available_liquidity - total_payables
+    st.subheader("Recommended Actions")
 
-    if idle_amount > 0:
-        st.info(
-            f"You may have around ${idle_amount:,.0f} in excess liquidity "
-            "that could be reviewed for yield allocation."
+    recommendations = []
+
+    if idle_liquidity > 0:
+        recommendations.append(f"Review ${idle_liquidity:,.0f} as possible excess liquidity.")
+    else:
+        recommendations.append("Do not allocate more funds to yield until payments are covered.")
+
+    if urgent_payables_usd > 0:
+        recommendations.append(f"Prepare ${urgent_payables_usd:,.0f} for urgent payments due soon.")
+
+    if funds_in_yield > total_balance * 0.5:
+        recommendations.append("Reduce locked yield exposure because more than 50% of treasury is not fully liquid.")
+    else:
+        recommendations.append("Current yield allocation is within a reasonable range for a prototype scenario.")
+
+    if edited_payables[edited_payables["Currency"] != "USD"].shape[0] > 0:
+        recommendations.append("Monitor FX exposure because some payables are not in USD.")
+
+    for item in recommendations:
+        st.write(f"✅ {item}")
+
+    st.subheader("AI CFO Summary")
+    st.info(
+        f"Based on current inputs, StableFlow classifies this treasury profile as **{risk_label}** "
+        f"with a liquidity score of **{liquidity_score}/100**."
+    )
+
+# -----------------------------
+# Tab 4: FX + Yield Simulator
+# -----------------------------
+with tab4:
+    st.header("FX + Yield Simulator")
+
+    c1, c2 = st.columns(2)
+
+    with c1:
+        st.subheader("FX Exposure")
+        fx_summary = edited_payables.groupby("Currency")["Amount"].sum().reset_index()
+        fx_summary["USD Equivalent"] = fx_summary.apply(
+            lambda row: row["Amount"] / fx_rates.get(row["Currency"], 1.0),
+            axis=1
+        )
+        st.dataframe(fx_summary, use_container_width=True, hide_index=True)
+
+        st.write("This shows how much the business needs to pay in each currency.")
+
+    with c2:
+        st.subheader("Yield Opportunity")
+        st.dataframe(yield_options, use_container_width=True, hide_index=True)
+
+        st.metric("Estimated Annual Yield", f"${annual_yield_estimate:,.0f}")
+        st.metric("Estimated Monthly Yield", f"${monthly_yield_estimate:,.0f}")
+
+    st.subheader("Yield Allocation Recommendation")
+
+    if idle_liquidity > 0:
+        safe_yield_amount = idle_liquidity * 0.6
+        st.success(
+            f"A conservative strategy could allocate around ${safe_yield_amount:,.0f} of excess liquidity "
+            "to flexible yield, while keeping the rest available for payments."
         )
     else:
         st.warning(
-            "Do not allocate more funds to yield right now. Keep liquidity available for payments."
+            "No safe excess liquidity detected. The business should keep funds liquid instead of chasing yield."
         )
 
-    st.write("Additional insights:")
-    st.write("- USDC balance is useful for conservative treasury planning.")
-    st.write("- CAD and AED payables create FX exposure.")
-    st.write("- Flexible yield options are better when payment dates are near.")
-    st.write("- The business should keep enough stablecoin liquid before chasing yield.")
+# -----------------------------
+# Tab 5: Business Model
+# -----------------------------
+with tab5:
+    st.header("Business Model")
+
+    st.subheader("Revenue Model")
+    st.dataframe(pricing, use_container_width=True, hide_index=True)
+
+    st.subheader("Customer ROI Calculator")
+
+    roi_col1, roi_col2, roi_col3 = st.columns(3)
+
+    roi_col1.metric("Monthly Fee Savings", f"${monthly_fee_savings:,.0f}")
+    roi_col2.metric("Monthly Yield Capture", f"${monthly_yield_estimate:,.0f}")
+    roi_col3.metric("Estimated Monthly Value", f"${estimated_monthly_value:,.0f}")
+
+    roi_df = pd.DataFrame({
+        "Value Driver": ["Fee Savings", "Yield Capture"],
+        "Monthly Value": [monthly_fee_savings, monthly_yield_estimate]
+    })
+
+    st.bar_chart(roi_df.set_index("Value Driver"))
+
+    st.subheader("Go-To-Market Strategy")
+
+    st.markdown(
+        """
+        **Initial target segment:** SMEs involved in cross-border trade, imports, exports, digital services, and logistics.
+
+        **Beachhead market:** Businesses already holding stablecoins for supplier or vendor payments.
+
+        **Acquisition channels:**
+
+        - LinkedIn outreach to CFOs and founders
+        - Partnerships with payment companies
+        - Content around stablecoin treasury education
+        - SME finance communities
+        - Webinars on cross-border payment efficiency
+        """
+    )
+
+    st.subheader("Competitive Positioning")
+    st.info(
+        "StableFlow is positioned between traditional SME finance software and complex DeFi tools. "
+        "It is designed for business users who need clarity, not crypto complexity."
+    )
+
+# -----------------------------
+# Tab 6: Final Project Summary
+# -----------------------------
+with tab6:
+    st.header("Final Project Summary")
+
+    st.subheader("Project Explanation")
+
+    st.markdown(
+        """
+        StableFlow is a course project prototype for a stablecoin treasury dashboard.
+
+        It helps small and medium-sized businesses manage:
+
+        - USDC and USDT balances
+        - Available liquidity
+        - Upcoming supplier payables
+        - FX exposure
+        - Yield opportunities
+        - AI-style treasury recommendations
+        """
+    )
+
+    st.subheader("Tech Stack")
+
+    st.write("- Python")
+    st.write("- Streamlit")
+    st.write("- Pandas")
+    st.write("- GitHub")
+    st.write("- Streamlit Cloud")
+
+    st.subheader("Prototype Note")
+    st.warning(
+        "This is a prototype using mock data for educational purposes. "
+        "It does not connect to real wallets, banks, exchanges, or DeFi protocols."
+    )
+
+    st.subheader("Pitch Closing Line")
+    st.success(
+        "StableFlow gives SMEs a simple way to manage stablecoin treasury decisions with the clarity of a CFO dashboard."
+    )
